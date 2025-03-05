@@ -146,7 +146,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // Enhanced Mind AR library simulation
+    // Enhanced Mind AR library simulation with object tracking
     class MindARThree {
       constructor(config) {
         this.container = config.container;
@@ -173,10 +173,11 @@
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
 
-        // Enhanced event handling
+        // Enhanced event handling with object tracking
         this._eventListeners = {
           targetFound: [],
           targetLost: [],
+          objectTracked: [],
           error: []
         };
 
@@ -187,7 +188,7 @@
       _animate() {
         requestAnimationFrame(() => this._animate());
         if (this.cube && this.anchorGroupVisible) {
-          // Only animate if the cube is rendered
+          // Only animate the cube if tracking is active
           this.cube.rotation.x += 0.01;
           this.cube.rotation.y += 0.01;
         }
@@ -210,12 +211,10 @@
 
       async start() {
         try {
-          // Improved camera selection with better fallback
+          // Request the back camera explicitly using environment mode
           const constraints = {
             video: { 
-              facingMode: [
-                { exact: "environment" } 
-              ],
+              facingMode: [{ exact: "environment" }],
               width: { ideal: 1280, max: 1920 },
               height: { ideal: 720, max: 1080 }
             }
@@ -244,13 +243,38 @@
       }
 
       _startTracking() {
-        // Enhanced tracking simulation
-        this.trackingInterval = setInterval(() => {
-          const isTargetFound = Math.random() > 0.5;
-          if (isTargetFound) {
+        // Simulate target detection every 3 seconds
+        this.detectionInterval = setInterval(() => {
+          const targetFound = Math.random() > 0.5;
+          if (targetFound) {
+            // Trigger targetFound once
             this._eventListeners.targetFound.forEach(cb => cb());
+            // Start continuous tracking updates if not already running
+            if (!this.trackingDataInterval) {
+              this.trackingDataInterval = setInterval(() => {
+                // Simulate object tracking data
+                const trackingData = {
+                  position: { 
+                    x: (Math.random() - 0.5) * 2, 
+                    y: (Math.random() - 0.5) * 2, 
+                    z: 0 
+                  },
+                  rotation: { 
+                    x: Math.random() * Math.PI, 
+                    y: Math.random() * Math.PI, 
+                    z: Math.random() * Math.PI 
+                  }
+                };
+                this._eventListeners.objectTracked.forEach(cb => cb(trackingData));
+              }, 100);
+            }
           } else {
+            // Trigger targetLost and stop tracking data updates
             this._eventListeners.targetLost.forEach(cb => cb());
+            if (this.trackingDataInterval) {
+              clearInterval(this.trackingDataInterval);
+              this.trackingDataInterval = null;
+            }
           }
         }, 3000);
       }
@@ -260,11 +284,14 @@
         if (this.video.srcObject) {
           this.video.srcObject.getTracks().forEach(track => track.stop());
         }
-        clearInterval(this.trackingInterval);
+        clearInterval(this.detectionInterval);
+        if (this.trackingDataInterval) {
+          clearInterval(this.trackingDataInterval);
+        }
       }
     }
 
-    // Initialization function with improved error handling
+    // Initialization function with improved error handling and object tracking
     function initAR() {
       const libraryStatus = document.getElementById('library-status');
       const debugOutput = document.getElementById('debug-output');
@@ -275,7 +302,6 @@
         const timestamp = new Date().toLocaleTimeString();
         debugOutput.textContent += `[${timestamp}] ${message}\n`;
         console.log(message);
-
         if (type === 'error') {
           libraryStatus.style.color = 'var(--error-color)';
         }
@@ -288,7 +314,7 @@
         imageTargetSrc: '/targets.mind'
       });
 
-      // Create an enhanced, more interesting cube
+      // Create an enhanced cube for the AR object
       const geometry = new THREE.BoxGeometry(1, 1, 1);
       const material = new THREE.MeshStandardMaterial({ 
         color: 0x00ff00, 
@@ -309,19 +335,30 @@
       const anchor = mindarThree.addAnchor(0);
       anchor.group.add(mindarThree.cube);
 
-      // Enhanced event listeners with more detailed logging
+      // When target is found, show the anchor group (and thus the cube)
       mindarThree.addEventListener('targetFound', () => {
         log('AR Target Found: Tracking Active');
-        mindarThree.cube.material.color.setHex(0x00ff00);
-        // Render the AR object by showing the anchor group
         anchor.group.visible = true;
       });
 
+      // When target is lost, hide the anchor group
       mindarThree.addEventListener('targetLost', () => {
         log('AR Target Lost: Tracking Paused');
-        mindarThree.cube.material.color.setHex(0xff0000);
-        // Hide the AR object by hiding the anchor group
         anchor.group.visible = false;
+      });
+
+      // Update the AR object's transform based on simulated tracking data
+      mindarThree.addEventListener('objectTracked', (trackingData) => {
+        anchor.group.position.set(
+          trackingData.position.x,
+          trackingData.position.y,
+          trackingData.position.z
+        );
+        anchor.group.rotation.set(
+          trackingData.rotation.x,
+          trackingData.rotation.y,
+          trackingData.rotation.z
+        );
       });
 
       mindarThree.addEventListener('error', (error) => {
