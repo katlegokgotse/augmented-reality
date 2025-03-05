@@ -5,39 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mind AR Back Camera Demo</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
+    :root {
+      --primary-color: #4CAF50;
+      --secondary-color: #45a049;
+      --background-color: #f0f4f8;
+      --text-color: #2c3e50;
+      --card-background: #ffffff;
+      --error-color: #e74c3c;
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 20px;
-      color: #333;
+      padding: 0;
     }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
+      padding: 20px;
     }
+
     header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
+      background-color: var(--card-background);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+
     h1 {
-      margin: 0;
-      font-size: 2em;
+      color: var(--primary-color);
+      font-size: 2.5em;
+      margin-bottom: 10px;
     }
+
     #library-status {
-      margin-top: 10px;
       font-weight: bold;
+      transition: color 0.3s ease;
     }
+
     #ar-container {
       position: relative;
       width: 100%;
-      height: 450px;
+      height: 500px;
       background-color: #000;
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
       margin-bottom: 20px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
-    /* Ensure video and canvas fill the AR container */
+
     #ar-container video,
     #ar-container canvas {
       position: absolute;
@@ -47,31 +73,60 @@
       height: 100%;
       object-fit: cover;
     }
+
     #debug-output {
-      background-color: #fff;
-      border: 1px solid #ddd;
+      background-color: var(--card-background);
+      border: 1px solid #e0e4e8;
       padding: 15px;
       white-space: pre-wrap;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
       margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
+
     .btn {
       display: block;
       width: 100%;
       max-width: 300px;
       margin: 0 auto 20px;
-      padding: 10px 20px;
+      padding: 12px 20px;
       font-size: 16px;
       text-align: center;
-      background-color: #4CAF50;
+      background-color: var(--primary-color);
       color: #fff;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+
     .btn:hover {
-      background-color: #45a049;
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 2em;
+      }
+
+      #ar-container {
+        height: 350px;
+      }
     }
   </style>
 </head>
@@ -79,40 +134,63 @@
   <div class="container">
     <header>
       <h1>Mind AR Back Camera Demo</h1>
-      <div id="library-status">Initializing...</div>
+      <div id="library-status">Initializing AR...</div>
     </header>
+    
     <div id="ar-container"></div>
+    
     <button class="btn" id="start-btn">Start AR (Back Camera)</button>
+    
     <div id="debug-output"></div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // Inline Mind AR library (simplified version)
-    const MindARThree = class {
+    // Enhanced Mind AR library simulation
+    class MindARThree {
       constructor(config) {
         this.container = config.container;
         this.imageTargetSrc = config.imageTargetSrc;
         
-        // Create video element
+        // Create video element with enhanced attributes
         this.video = document.createElement('video');
         this.video.setAttribute('autoplay', '');
         this.video.setAttribute('playsinline', '');
+        this.video.setAttribute('muted', '');
         this.video.style.width = '100%';
         this.container.appendChild(this.video);
 
-        // Scene setup
+        // Scene setup with improved configuration
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera();
-        this.renderer = new THREE.WebGLRenderer({ alpha: true });
+        this.camera = new THREE.PerspectiveCamera(75, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+        this.camera.position.z = 5;
+        
+        this.renderer = new THREE.WebGLRenderer({ 
+          alpha: true, 
+          antialias: true 
+        });
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
 
-        // Event handling
+        // Enhanced event handling
         this._eventListeners = {
           targetFound: [],
-          targetLost: []
+          targetLost: [],
+          error: []
         };
+
+        // Render loop
+        this._animate();
+      }
+
+      _animate() {
+        requestAnimationFrame(() => this._animate());
+        if (this.cube) {
+          this.cube.rotation.x += 0.01;
+          this.cube.rotation.y += 0.01;
+        }
+        this.renderer.render(this.scene, this.camera);
       }
 
       addEventListener(event, callback) {
@@ -129,52 +207,77 @@
 
       async start() {
         try {
-          // Request back camera specifically
+          // Improved camera selection with better fallback
           const constraints = {
             video: { 
-              facingMode: { exact: "environment" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              facingMode: [
+                { exact: "environment" },  // Back camera
+                "user",                    // Front camera fallback
+                "any"                      // Any camera as last resort
+              ],
+              width: { ideal: 1280, max: 1920 },
+              height: { ideal: 720, max: 1080 }
             }
           };
+
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
           this.video.srcObject = stream;
+          
+          // Wait for video metadata to load
+          await new Promise(resolve => {
+            this.video.onloadedmetadata = () => {
+              this.video.play();
+              resolve();
+            };
+          });
+
           this._startTracking();
         } catch (error) {
-          console.error('AR Start Error:', error);
-          // Fallback to any available camera if back camera fails
-          try {
-            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            this.video.srcObject = fallbackStream;
-            this._startTracking();
-          } catch (fallbackError) {
-            throw error; // Throw original error if fallback fails
-          }
+          this._triggerErrorHandlers(error);
+          throw error;
         }
       }
 
+      _triggerErrorHandlers(error) {
+        this._eventListeners.error.forEach(cb => cb(error));
+      }
+
       _startTracking() {
-        // Simple mock tracking
-        setInterval(() => {
-          if (Math.random() > 0.5) {
+        // Enhanced tracking simulation
+        this.trackingInterval = setInterval(() => {
+          const isTargetFound = Math.random() > 0.5;
+          if (isTargetFound) {
             this._eventListeners.targetFound.forEach(cb => cb());
           } else {
             this._eventListeners.targetLost.forEach(cb => cb());
           }
         }, 3000);
       }
-    };
 
-    // Initialization function
+      // Cleanup method
+      stop() {
+        if (this.video.srcObject) {
+          this.video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        clearInterval(this.trackingInterval);
+      }
+    }
+
+    // Initialization function with improved error handling
     function initAR() {
       const libraryStatus = document.getElementById('library-status');
       const debugOutput = document.getElementById('debug-output');
       const arContainer = document.getElementById('ar-container');
       const startButton = document.getElementById('start-btn');
 
-      function log(message) {
-        debugOutput.textContent += message + '\n';
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        debugOutput.textContent += `[${timestamp}] ${message}\n`;
         console.log(message);
+
+        if (type === 'error') {
+          libraryStatus.style.color = 'var(--error-color)';
+        }
       }
 
       log('Initializing Mind AR...');
@@ -184,33 +287,65 @@
         imageTargetSrc: './targets.mind'
       });
 
-      // Create a simple cube
+      // Create an enhanced, more interesting cube
       const geometry = new THREE.BoxGeometry(1, 1, 1);
-      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      const cube = new THREE.Mesh(geometry, material);
+      const material = new THREE.MeshStandardMaterial({ 
+        color: 0x00ff00, 
+        metalness: 0.5, 
+        roughness: 0.5 
+      });
+      mindarThree.cube = new THREE.Mesh(geometry, material);
+      
+      // Add lighting for better 3D effect
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      mindarThree.scene.add(ambientLight);
+      const pointLight = new THREE.PointLight(0xffffff, 1);
+      pointLight.position.set(5, 5, 5);
+      mindarThree.scene.add(pointLight);
+
       const anchor = mindarThree.addAnchor(0);
-      anchor.group.add(cube);
+      anchor.group.add(mindarThree.cube);
 
-      // Event listeners for AR tracking events
+      // Enhanced event listeners with more detailed logging
       mindarThree.addEventListener('targetFound', () => {
-        log('Target Found');
-      });
-      mindarThree.addEventListener('targetLost', () => {
-        log('Target Lost');
+        log('AR Target Found: Tracking Active');
+        mindarThree.cube.material.color.setHex(0x00ff00);
       });
 
-      // Start AR on button click
+      mindarThree.addEventListener('targetLost', () => {
+        log('AR Target Lost: Tracking Paused');
+        mindarThree.cube.material.color.setHex(0xff0000);
+      });
+
+      mindarThree.addEventListener('error', (error) => {
+        log(`AR Error: ${error.message}`, 'error');
+        libraryStatus.textContent = 'Camera Access Failed';
+      });
+
+      // Start AR on button click with improved UX
       startButton.addEventListener('click', async () => {
+        startButton.disabled = true;
+        startButton.textContent = 'Starting AR...';
+        libraryStatus.textContent = 'Accessing Camera...';
+
         try {
           await mindarThree.start();
           log('AR Started Successfully');
-          startButton.disabled = true;
+          startButton.textContent = 'AR Running';
           libraryStatus.textContent = 'AR Initialized Successfully';
           libraryStatus.style.color = 'green';
         } catch (error) {
-          log(`AR Start Error: ${error.message}`);
-          libraryStatus.textContent = 'Failed to access back camera';
-          libraryStatus.style.color = 'red';
+          log(`AR Start Error: ${error.message}`, 'error');
+          startButton.disabled = false;
+          startButton.textContent = 'Start AR (Back Camera)';
+          libraryStatus.textContent = 'Failed to Access Camera';
+        }
+      });
+
+      // Handle page visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          mindarThree.stop();
         }
       });
     }
