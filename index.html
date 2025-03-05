@@ -186,7 +186,8 @@
 
       _animate() {
         requestAnimationFrame(() => this._animate());
-        if (this.cube) {
+        if (this.cube && this.anchorGroupVisible) {
+          // Only animate if the cube is rendered
           this.cube.rotation.x += 0.01;
           this.cube.rotation.y += 0.01;
         }
@@ -201,6 +202,8 @@
 
       addAnchor(index) {
         const group = new THREE.Group();
+        // Initially hide the group until target is found
+        group.visible = false;
         this.scene.add(group);
         return { group };
       }
@@ -301,6 +304,8 @@
       pointLight.position.set(5, 5, 5);
       mindarThree.scene.add(pointLight);
 
+      // Create an anchor and add the cube into its group.
+      // The group is initially hidden.
       const anchor = mindarThree.addAnchor(0);
       anchor.group.add(mindarThree.cube);
 
@@ -308,11 +313,15 @@
       mindarThree.addEventListener('targetFound', () => {
         log('AR Target Found: Tracking Active');
         mindarThree.cube.material.color.setHex(0x00ff00);
+        // Render the AR object by showing the anchor group
+        anchor.group.visible = true;
       });
 
       mindarThree.addEventListener('targetLost', () => {
         log('AR Target Lost: Tracking Paused');
         mindarThree.cube.material.color.setHex(0xff0000);
+        // Hide the AR object by hiding the anchor group
+        anchor.group.visible = false;
       });
 
       mindarThree.addEventListener('error', (error) => {
