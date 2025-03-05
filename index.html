@@ -211,9 +211,7 @@
           const constraints = {
             video: { 
               facingMode: [
-                { exact: "environment" },  // Back camera
-                "user",                    // Front camera fallback
-                "any"                      // Any camera as last resort
+                { exact: "environment" } 
               ],
               width: { ideal: 1280, max: 1920 },
               height: { ideal: 720, max: 1080 }
@@ -284,7 +282,7 @@
 
       const mindarThree = new MindARThree({
         container: arContainer,
-        imageTargetSrc: './targets.mind'
+        imageTargetSrc: '/targets.mind'
       });
 
       // Create an enhanced, more interesting cube
